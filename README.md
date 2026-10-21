@@ -46,13 +46,6 @@ npm run dev
 
 App: http://localhost:3000
 
-### Default logins
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Owner | owner@onepoint.lk | KaveeOnepoint2026 |
-| Cashier | cashier@onepoint.lk | Cashier@2026 |
-
 Cashiers land on `/pos` only (no cost prices, profit, users, or drawer close). Owners get `/owner` and can still open POS.
 
 ## What it does
