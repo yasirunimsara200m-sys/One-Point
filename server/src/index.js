@@ -15,15 +15,26 @@ import { drawerRouter } from "./routes/drawer.js";
 
 const app = express();
 const server = http.createServer(app);
-const origin = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 
 const io = new Server(server, {
-  cors: { origin, methods: ["GET", "POST"] },
+  cors: { origin: true, methods: ["GET", "POST", "PATCH", "DELETE"] },
 });
 app.set("io", io);
 
-app.use(cors({ origin, credentials: true }));
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors());
 app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.json({ ok: true, service: "onepoint-api", status: "running" });
+});
 
 app.get("/api/health", async (_req, res) => {
   try {
