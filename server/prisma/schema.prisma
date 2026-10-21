@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  CASHIER
+}
+
+enum CategoryKind {
+  PRODUCT
+  SERVICE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  CREDIT
+  SPLIT
+}
+
+enum SaleStatus {
+  COMPLETED
+  VOIDED
+}
+
+enum LedgerType {
+  CREDIT_SALE
+  SETTLEMENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sales        Sale[]
+  drawersOpened DrawerSession[] @relation("DrawerOpenedBy")
+  drawersClosed DrawerSession[] @relation("DrawerClosedBy")
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  kind      CategoryKind
+  sortOrder Int          @default(0)
+  products  Product[]
+}
+
+model Product {
+  id                 String    @id @default(cuid())
+  sku                String    @unique
+  barcode            String?   @unique
+  name               String
+  categoryId         String
+  category           Category  @relation(fields: [categoryId], references: [id])
+  costPrice          Decimal   @db.Decimal(12, 2)
+  sellPrice          Decimal   @db.Decimal(12, 2)
+  trackStock         Boolean   @default(true)
+  stockQty           Decimal   @default(0) @db.Decimal(12, 3)
+  lowStockThreshold  Decimal   @default(5) @db.Decimal(12, 3)
+  quickButton        Boolean   @default(false)
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  saleItems          SaleItem[]
+
+  @@index([name])
+}
+
+model Customer {
+  id            String         @id @default(cuid())
+  name          String
+  phone         String         @unique
+  creditBalance Decimal        @default(0) @db.Decimal(12, 2)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sales         Sale[]
+  ledger        CreditLedger[]
+}
+
+model Sale {
+  id           String        @id @default(cuid())
+  invoiceNo    String        @unique
+  cashierId    String
+  cashier      User          @relation(fields: [cashierId], references: [id])
+  customerId   String?
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  subtotal     Decimal       @db.Decimal(12, 2)
+  discount     Decimal       @default(0) @db.Decimal(12, 2)
+  total        Decimal       @db.Decimal(12, 2)
+  paymentMethod PaymentMethod
+  cashAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  cardAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  creditAmount Decimal       @default(0) @db.Decimal(12, 2)
+  cashTendered Decimal       @default(0) @db.Decimal(12, 2)
+  changeGiven  Decimal       @default(0) @db.Decimal(12, 2)
+  status       SaleStatus    @default(COMPLETED)
+  note         String?
+  createdAt    DateTime      @default(now())
+  items        SaleItem[]
+  ledger       CreditLedger[]
+
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id           String  @id @default(cuid())
+  saleId       String
+  sale         Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  name         String
+  sku          String
+  qty          Decimal @db.Decimal(12, 3)
+  unitPrice    Decimal @db.Decimal(12, 2)
+  costPrice    Decimal @db.Decimal(12, 2)
+  lineDiscount Decimal @default(0) @db.Decimal(12, 2)
+  lineTotal    Decimal @db.Decimal(12, 2)
+}
+
+model CreditLedger {
+  id         String     @id @default(cuid())
+  customerId String
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  saleId     String?
+  sale       Sale?      @relation(fields: [saleId], references: [id])
+  type       LedgerType
+  amount     Decimal    @db.Decimal(12, 2)
+  note       String?
+  createdAt  DateTime   @default(now())
+}
+
+model DrawerSession {
+  id           String    @id @default(cuid())
+  openedById   String
+  openedBy     User      @relation("DrawerOpenedBy", fields: [openedById], references: [id])
+  closedById   String?
+  closedBy     User?     @relation("DrawerClosedBy", fields: [closedById], references: [id])
+  openingFloat Decimal   @db.Decimal(12, 2)
+  expectedCash Decimal?  @db.Decimal(12, 2)
+  actualCash   Decimal?  @db.Decimal(12, 2)
+  variance     Decimal?  @db.Decimal(12, 2)
+  notes        String?
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+}

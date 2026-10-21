@@ -1,0 +1,58 @@
+import "dotenv/config";
+import http from "http";
+import express from "express";
+import cors from "cors";
+import { Server } from "socket.io";
+import { prisma } from "./lib/prisma.js";
+import { authRouter } from "./routes/auth.js";
+import { usersRouter } from "./routes/users.js";
+import { productsRouter } from "./routes/products.js";
+import { categoriesRouter } from "./routes/categories.js";
+import { customersRouter } from "./routes/customers.js";
+import { salesRouter } from "./routes/sales.js";
+import { reportsRouter } from "./routes/reports.js";
+import { drawerRouter } from "./routes/drawer.js";
+
+const app = express();
+const server = http.createServer(app);
+const origin = process.env.CLIENT_ORIGIN || "http://localhost:3000";
+
+const io = new Server(server, {
+  cors: { origin, methods: ["GET", "POST"] },
+});
+app.set("io", io);
+
+app.use(cors({ origin, credentials: true }));
+app.use(express.json());
+
+app.get("/api/health", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ok: true, service: "onepoint-api" });
+  } catch {
+    res.status(503).json({ ok: false, error: "Database unavailable" });
+  }
+});
+
+app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/products", productsRouter);
+app.use("/api/categories", categoriesRouter);
+app.use("/api/customers", customersRouter);
+app.use("/api/sales", salesRouter);
+app.use("/api/reports", reportsRouter);
+app.use("/api/drawer", drawerRouter);
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: "Unexpected server error" });
+});
+
+io.on("connection", (socket) => {
+  socket.on("join:owner", () => socket.join("owners"));
+});
+
+const port = Number(process.env.PORT || 4000);
+server.listen(port, () => {
+  console.log(`One Point API on http://localhost:${port}`);
+});

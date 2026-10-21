@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: onepoint-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: onepoint
+      POSTGRES_PASSWORD: onepoint
+      POSTGRES_DB: onepoint
+    ports:
+      - "5432:5432"
+    volumes:
+      - onepoint_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onepoint -d onepoint"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  onepoint_pg:
