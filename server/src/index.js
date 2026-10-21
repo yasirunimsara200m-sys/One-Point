@@ -53,6 +53,10 @@ io.on("connection", (socket) => {
 });
 
 const port = Number(process.env.PORT || 4000);
-server.listen(port, () => {
-  console.log(`One Point API on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(port, () => {
+    console.log(`One Point API on http://localhost:${port}`);
+  });
+}
+
+export default app;

@@ -48,8 +48,13 @@ export default function OwnerHome() {
       setPulse(`${payload.invoiceNo} · ${lkr(payload.total)}`);
       refresh();
     });
+
+    // Auto-refresh fallback every 10s (works seamlessly on Vercel/serverless)
+    const interval = setInterval(refresh, 10000);
+
     return () => {
       socket.close();
+      clearInterval(interval);
     };
   }, []);
 
